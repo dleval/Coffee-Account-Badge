@@ -1,24 +1,30 @@
 #include <Arduino.h>
 
-#include <M5StickCPlus.h>
+#include "board_pin.h"
+
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <WiFiAP.h>
 
-// https://github.com/m5stack/M5StickC-Plus
 
 //Wifi Soft AP parameters
 const char *wifi_ap_ssid     = "Coffee_Badge";
 const char *wifi_ap_password = "coffee_password";
+IPAddress IP = {192, 168, 1, 1};
+IPAddress gateway = {192, 168, 1, 1};
+IPAddress NMask = {255, 255, 255, 0};
 
 WiFiServer server(80);
 
 void setup() {
-  M5.begin();
   Serial.begin(115200);
 
   WiFi.mode(WIFI_AP);
   WiFi.softAP(wifi_ap_ssid, wifi_ap_password);
+
+  delay(1000);
+
+  WiFi.softAPConfig(IP, gateway, NMask);
 
   IPAddress myIP = WiFi.softAPIP();
   Serial.println(myIP);
