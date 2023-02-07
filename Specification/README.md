@@ -35,7 +35,7 @@ The web interface has two pages :
 
 ## Wifi AP
 The system generates a soft Wifi Access Point. <br>
-To access the web interface, it's necessary to connect to the access point and access the IP address http://192.168.1.1:80
+To access the web interface, it's necessary to connect to the access point and access the IP address http://192.168.1.1:80 or mDNS address "coffee.local".
 
 ## RFID Reader
 The RFID reader permanently scans the presence of badges. <br>
