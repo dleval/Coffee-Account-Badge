@@ -1,10 +1,15 @@
 #include <Arduino.h>
-
 #include "board_pin.h"
 
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <WiFiAP.h>
+#include <ESPmDNS.h>
+#include "ESPAsyncWebServer.h"
+#include "SPIFFS.h"
+
+#include "view.h"
+#include "rfid.h"
 
 
 //Wifi Soft AP parameters
@@ -14,10 +19,47 @@ IPAddress IP = {192, 168, 1, 1};
 IPAddress gateway = {192, 168, 1, 1};
 IPAddress NMask = {255, 255, 255, 0};
 
-WiFiServer server(80);
+//mDNS parameters
+const char *mdns_name = "coffee";
+
+// Create AsyncWebServer object on port 80
+AsyncWebServer server(80);
+
+String ledState;
+String processor(const String& var){
+  Serial.println(var);
+  if(var == "STATE"){
+    ledState = "OFF";
+    Serial.print(ledState);
+    return ledState;
+  }
+  return String();
+}
+
+
 
 void setup() {
   Serial.begin(115200);
+  delay(2000);
+  Serial.println("Coffeeeee Badge");
+
+  // Initialize SPIFFS
+  if(!SPIFFS.begin(true)){
+    Serial.println("An Error has occurred while mounting SPIFFS");
+    delay(1000);
+    return;
+  }
+  File root = SPIFFS.open("/");
+  File file = root.openNextFile();
+  while(file){
+ 
+      Serial.print("FILE: ");
+      Serial.println(file.name());
+ 
+      file = root.openNextFile();
+  }
+
+  setup_gfx();
 
   WiFi.mode(WIFI_AP);
   WiFi.softAP(wifi_ap_ssid, wifi_ap_password);
@@ -29,54 +71,43 @@ void setup() {
   IPAddress myIP = WiFi.softAPIP();
   Serial.println(myIP);
 
+  if(!MDNS.begin(mdns_name)) {
+     Serial.println("Error starting mDNS");
+     return;
+  }
+
+
+  // Route for root / web page
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(SPIFFS, "/index.html", String(), false, processor);
+  });
+  
+  // Route to load style.css file
+  server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(SPIFFS, "/style.css", "text/css");
+  });
+
+  // Route to set GPIO to HIGH
+  server.on("/on", HTTP_GET, [](AsyncWebServerRequest *request){
+    // digitalWrite(ledPin, HIGH);    
+    request->send(SPIFFS, "/index.html", String(), false, processor);
+  });
+  
+  // Route to set GPIO to LOW
+  server.on("/off", HTTP_GET, [](AsyncWebServerRequest *request){
+    // digitalWrite(ledPin, LOW);    
+    request->send(SPIFFS, "/index.html", String(), false, processor);
+  });
+
+  // Start server
   server.begin();
+
+
+  delay(3000);
+  RFID_setup();
 }
 
 void loop() {
-  WiFiClient client = server.available();   // Listen for incoming clients
+  RFID_loop();
 
-  if (client) {
-    Serial.print("New Client:");
-    String currentLine = "";  // make a String to hold incoming data from the client.
-    while (client.connected()) {
-      if (client.available()) {
-        char c = client.read();  // store the read a byte. 
-        Serial.write(c);
-        if (c == '\n') {  // \n is the end of the client'S HTTP request, indicating that the client has sent a new request
-          if (currentLine.length() == 0) {
-            // Here are the instructions to create a page.
-            // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK) and a content-type so the client
-            // knows what's coming, then a blank line:
-            client.println("HTTP/1.1 200 OK");
-            client.println("Content-type:text/html");
-            client.println();
-            String page = "<!DOCTYPE html>";  // Début page HTML
-            page += "<head>";
-            page += "    <title> Coffee Account Badge</title>";
-            page += "    <meta http-equiv='refresh' content='60' name='viewport' content='width=device-width, initial-scale=1' charset='UTF-8'/>";
-            page += "</head>";
-            page += "<body lang='fr'>";
-            page += "    <h1>Serveur</h1>";
-            page += "    <p>Ce serveur est hébergé sur un ESP32</p>";
-            page += "    <i>Créé par DVI</i>";
-            page += "</body>";
-            page += "</html>";  // Fin page HTML
-            client.print(page);
-            client.println(); // The HTTP response ends with another blank line
-            break;
-          } else { // if you got a newline, then clear currentLine
-            currentLine = "";
-          }
-        } else if (c != '\r') {  // if you got anything else but a carriage return character,
-          currentLine += c;      // add it to the end of the currentLine
-        }
-        //GET method
-        if (currentLine.endsWith("GET /toto")) {
-          Serial.println("toto");
-        } else if (currentLine.endsWith("GET /titi")) {
-          Serial.println("titi");
-        }
-      }
-    }
-  }
 }

@@ -48,6 +48,8 @@
 #define PIN_TOUCH_INT                16
 #define PIN_TOUCH_RES                21
 
+//SPI : MISO:13  MOSI:11  SCK:12
+
 
 #ifdef __cplusplus
     }
