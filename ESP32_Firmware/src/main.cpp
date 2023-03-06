@@ -10,6 +10,7 @@
 
 #include "view.h"
 #include "rfid.h"
+#include "database.h"
 
 
 //Wifi Soft AP parameters
@@ -58,6 +59,10 @@ void setup() {
  
       file = root.openNextFile();
   }
+
+
+  db.read_json_file(SPIFFS, "/coffee_db.json");
+
 
   setup_gfx();
 

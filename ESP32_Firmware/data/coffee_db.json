@@ -1,0 +1,30 @@
+{ "db": [
+    {
+        "Name": "AZE",
+        "UID": "BEEF012345",
+        "coffee_cnt": 12,
+        "balance": 23,
+        "blocked": false
+    },
+    {
+        "Name": "RTY",
+        "UID": "DEAD987654",
+        "coffee_cnt": 67,
+        "balance": 2,
+        "blocked": false
+    },
+    {
+        "Name": "QSD",
+        "UID": "CAFE543210",
+        "coffee_cnt": 34,
+        "balance": -2,
+        "blocked": false
+    },
+    {
+        "Name": "FGH",
+        "UID": "DEAD0CAFE0",
+        "coffee_cnt": 234,
+        "balance": 0,
+        "blocked": true
+    }
+]}
