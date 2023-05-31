@@ -1,15 +1,139 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>ESP32 Web Server</title>
+  <title>Coffee Account Badge</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="data:,">
   <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body>
-  <h1>ESP32 Web Server</h1>
+  <h1>Coffee Account Badge</h1>
+  
+  <div class="download-wrapper" onClick="download()">
+    <!-- <p><i class="material-icons">file_download</i></p> -->
+    <!-- <br><br><br><p>Download Demo CSV File</p> -->
+    <p><button class="button">Download Table (csv)</button></a></p>
+  </div>
+
+  <table class="styled-table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>UID</th>
+        <th>Coffee cnt</th>
+        <th>Balance</th>
+        <th>Blocked</th>
+      </tr>
+    </thead>
+    <tbody id="data-output"></tbody>
+  </table>
   <p>GPIO state: <strong> %STATE%</strong></p>
   <p><a href="/on"><button class="button">ON</button></a></p>
   <p><a href="/off"><button class="button button2">OFF</button></a></p>
+
+  <script>
+    fetch("coffee_db.json")
+    .then(function(response){
+      return response.json();
+    })
+    .then(function(coffee_db){
+      let placeholder = document.querySelector("#data-output");
+      let out = "";
+      for(let user of coffee_db.db){
+        out += `
+	         <tr>
+	            <td>${user.Name}</td>
+	            <td>${user.UID}</td>
+	            <td>${user.coffee_cnt}</td>
+	            <td>${user.balance}</td>
+	            <td>${user.blocked}</td>
+	         </tr>
+	      `;
+      }
+      placeholder.innerHTML = out;
+    });
+
+
+    function convertToCSV(objArray) {
+      var array = typeof objArray != 'object' ? JSON.parse(objArray) : objArray;
+      var str = '';
+
+      for (var i = 0; i < array.length; i++) {
+          var line = '';
+          for (var index in array[i]) {
+              if (line != '') line += ';'
+
+              line += array[i][index];
+          }
+
+          str += line + '\r\n';
+      }
+
+      return str;
+    }
+
+    function exportCSVFile(headers, items, fileTitle) {
+      if (headers) {
+          items.unshift(headers);
+      }
+
+      // Convert Object to JSON
+      var jsonObject = JSON.stringify(items);
+
+      var csv = this.convertToCSV(jsonObject);
+
+      var exportedFilename = fileTitle + '.csv' || 'export.csv';
+
+      var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      if (navigator.msSaveBlob) { // IE 10+
+          navigator.msSaveBlob(blob, exportedFilename);
+      } else {
+          var link = document.createElement("a");
+          if (link.download !== undefined) { // feature detection
+              // Browsers that support HTML5 download attribute
+              var url = URL.createObjectURL(blob);
+              link.setAttribute("href", url);
+              link.setAttribute("download", exportedFilename);
+              link.style.visibility = 'hidden';
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+          }
+      }
+    }
+
+    function download(){
+      var headers = {
+          Name: 'Name',
+          UID: "UID",
+          coffee_cnt: "coffee_cnt",
+          balance: "Earphones",
+          blocked: "blocked"
+      };
+
+      fetch("coffee_db.json")
+      .then(function(response){
+        return response.json();
+      })
+      .then(function(coffee_db){
+        // var json = JSON.parse(coffee_db);
+        itemsNotFormatted = coffee_db.db;
+        var itemsFormatted = [];
+        // format the data
+        itemsNotFormatted.forEach((item) => {
+          itemsFormatted.push({
+              Name: item.Name,
+              UID: item.UID,
+              coffee_cnt: item.coffee_cnt,
+              balance: item.balance,
+              blocked: item.blocked
+          });
+        });
+        var fileTitle = 'coffee_badger';
+        exportCSVFile(headers, itemsFormatted, fileTitle); 
+      });  
+    }
+  </script>
+
 </body>
 </html>
