@@ -1,118 +1,41 @@
 #include <Arduino.h>
-#include "board_pin.h"
-
-#include <WiFi.h>
-#include <WiFiClient.h>
-#include <WiFiAP.h>
-#include <ESPmDNS.h>
-#include "ESPAsyncWebServer.h"
-#include "SPIFFS.h"
-
-#include "view.h"
+#include "M5Atom.h"
+#include "tfcard.h"
 #include "rfid.h"
-#include "database.h"
+#include "web_server.h"
 
+void setup()
+{
+    M5.begin(true, false, true);
 
-//Wifi Soft AP parameters
-const char *wifi_ap_ssid     = "Coffee_Badge";
-const char *wifi_ap_password = "coffee_password";
-IPAddress IP = {192, 168, 1, 1};
-IPAddress gateway = {192, 168, 1, 1};
-IPAddress NMask = {255, 255, 255, 0};
+    delay(2000);
 
-//mDNS parameters
-const char *mdns_name = "coffee";
+    Serial.println("\n\r Coffee Badge Reader");
 
-// Create AsyncWebServer object on port 80
-AsyncWebServer server(80);
+    tfcard.begin();
 
-String ledState;
-String processor(const String& var){
-  Serial.println(var);
-  if(var == "STATE"){
-    ledState = "OFF";
-    Serial.print(ledState);
-    return ledState;
-  }
-  return String();
+    uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+    Serial.printf("SD Card Size: %lluMB\n", cardSize);
+
+    tfcard.listDir(SD, "/", 0);
+    tfcard.readFile(SD, "/test.txt");
+
+    rfid.begin();
+
+    web_server.begin();
 }
 
-
-
-void setup() {
-  Serial.begin(115200);
-  delay(2000);
-  Serial.println("Coffeeeee Badge");
-
-  // Initialize SPIFFS
-  if(!SPIFFS.begin(true)){
-    Serial.println("An Error has occurred while mounting SPIFFS");
-    delay(1000);
-    return;
-  }
-  File root = SPIFFS.open("/");
-  File file = root.openNextFile();
-  while(file){
- 
-      Serial.print("FILE: ");
-      Serial.println(file.name());
- 
-      file = root.openNextFile();
-  }
-
-
-  db.read_json_file(SPIFFS, "/coffee_db.json");
-
-
-  setup_gfx();
-
-  WiFi.mode(WIFI_AP);
-  WiFi.softAP(wifi_ap_ssid, wifi_ap_password);
-
-  delay(1000);
-
-  WiFi.softAPConfig(IP, gateway, NMask);
-
-  IPAddress myIP = WiFi.softAPIP();
-  Serial.println(myIP);
-
-  if(!MDNS.begin(mdns_name)) {
-     Serial.println("Error starting mDNS");
-     return;
-  }
-
-
-  // Route for root / web page
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send(SPIFFS, "/index.html", String(), false, processor);
-  });
-  
-  // Route to load style.css file
-  server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send(SPIFFS, "/style.css", "text/css");
-  });
-
-  // Route to set GPIO to HIGH
-  server.on("/on", HTTP_GET, [](AsyncWebServerRequest *request){
-    // digitalWrite(ledPin, HIGH);    
-    request->send(SPIFFS, "/index.html", String(), false, processor);
-  });
-  
-  // Route to set GPIO to LOW
-  server.on("/off", HTTP_GET, [](AsyncWebServerRequest *request){
-    // digitalWrite(ledPin, LOW);    
-    request->send(SPIFFS, "/index.html", String(), false, processor);
-  });
-
-  // Start server
-  server.begin();
-
-
-  delay(3000);
-  RFID_setup();
-}
-
-void loop() {
-  RFID_loop();
-
+void loop()
+{
+    // put your main code here, to run repeatedly:
+    if (rfid.check_badge())
+    {
+        Serial.print(" UID readed: ");
+        for(uint8_t i = 0; i < 10; i++)
+        {
+            Serial.printf(" 0x%02X", rfid.uid_data[i]);
+        }
+        Serial.println("");
+    }
+    delay(200);
 }
